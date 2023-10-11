@@ -6,11 +6,25 @@ Model Creation Steps
   define User MODEL
   some functionalities before saving it in database
   define Model methods
+
+Access_Token And Refresh_Token For High Level Security
+  all protected routes will be accessed by sending cookies with request api call
+  cookies will contain access_token and refresh_token
+  access_token will expire after 5 mins, but refresh_token remains for very long time
+  we can again get acces_token by the use of refresh_token
+  in api call request, if access_token in cookies is expired,
+    then it will do another request to get access token by the help of refresh_token
+    then after getting access_token, it will go to protected route
+  in api call request, if access_token is not expired in cookies,
+    then directly go to protected route
+  
 */
 
 
+require("dotenv").config();
 import mongoose, { Document, Model, Schema } from "mongoose";
 import bcrypt from 'bcryptjs'
+import jwt, { Secret } from "jsonwebtoken";
 
 // regular expression for validating email
 const emailRegexPattern: RegExp = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -29,6 +43,8 @@ export interface IUser extends Document {
   isVerified: boolean;
   courses: Array<{ courseId: string }>;
   comparePassword: (password: string) => Promise<boolean>;    // method
+  signAccessToken: () => string;
+  signRefreshToken: () => string;
 }
 
 
@@ -87,10 +103,29 @@ userSchema.pre<IUser>('save', async function (next) {
 });
 
 
+// define model methods
 // define comparePassword method
 userSchema.methods.comparePassword = async function (enteredPassword: string): Promise<boolean> {
   return await bcrypt.compare(enteredPassword, this.password);
 };
+
+// define signAccessToken method
+userSchema.methods.signAccessToken = function () {
+  return jwt.sign(
+    { id: this._id },
+    process.env.ACCESS_TOKEN || ""
+    // process.env.ACCESS_TOKEN as Secret
+  );
+}
+
+// define signRefreshToken method
+userSchema.methods.signRefreshToken = function () {
+  return jwt.sign(
+    { id: this._id },
+    process.env.REFRESH_TOKEN || ""
+    // process.env.REFRESH_TOKEN as Secret
+  );
+}
 
 
 // define user MODEL
