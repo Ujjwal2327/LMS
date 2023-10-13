@@ -10,7 +10,7 @@ Model Creation Steps
 Access_Token And Refresh_Token For High Level Security
   all protected routes will be accessed by sending cookies with request api call
   cookies will contain access_token and refresh_token
-  access_token will expire after 5 mins, but refresh_token remains for very long time
+  access_token will expire after 5 mins, but refresh_token remains for 3 days
   we can again get acces_token by the use of refresh_token
   in api call request, if access_token in cookies is expired,
     then it will do another request to get access token by the help of refresh_token
@@ -24,7 +24,7 @@ Access_Token And Refresh_Token For High Level Security
 require("dotenv").config();
 import mongoose, { Document, Model, Schema } from "mongoose";
 import bcrypt from 'bcryptjs'
-import jwt, { Secret } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 
 // regular expression for validating email
 const emailRegexPattern: RegExp = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -70,7 +70,7 @@ const userSchema: Schema<IUser> = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, "Please enter your password"],
+      // required: [true, "Please enter your password"],    // will not use for social (ex - google) authentication
       minlength: [6, "Password must be at least 6 characters"],
       select: false,    // to hide password field from query results by default when fetching data from database
     },
@@ -113,8 +113,9 @@ userSchema.methods.comparePassword = async function (enteredPassword: string): P
 userSchema.methods.signAccessToken = function () {
   return jwt.sign(
     { id: this._id },
-    process.env.ACCESS_TOKEN || ""
-    // process.env.ACCESS_TOKEN as Secret
+    process.env.ACCESS_TOKEN || "",
+    // process.env.ACCESS_TOKEN as Secret,
+    { expiresIn: "5m" }
   );
 }
 
@@ -122,8 +123,9 @@ userSchema.methods.signAccessToken = function () {
 userSchema.methods.signRefreshToken = function () {
   return jwt.sign(
     { id: this._id },
-    process.env.REFRESH_TOKEN || ""
-    // process.env.REFRESH_TOKEN as Secret
+    process.env.REFRESH_TOKEN || "",
+    // process.env.REFRESH_TOKEN as Secret,
+    { expiresIn: "3d" }
   );
 }
 
